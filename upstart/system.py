@@ -1,19 +1,37 @@
 import dbus
+import dbus.bus
+import dbus.connection
+import weakref
+
+
+class DirectBusConnection(dbus.bus.BusConnection):
+    '''
+    dbus_bus_register() fails for direct address connections,
+    so we avoid that by creating a connection directly
+    '''
+    def __new__(self, address):
+        bus = dbus.connection.Connection(address)
+        bus._bus_names = weakref.WeakValueDictionary()
+        bus._signal_sender_matches = {}
+        return bus
 
 
 class UpstartSystem(object):
-    def __init__(self):
-        self.__system = dbus.SystemBus()
+    def __init__(self, direct=False):
+        if direct:
+            self.__system = DirectBusConnection('unix:abstract=/com/ubuntu/upstart')
+        else:
+            self.__system = dbus.SystemBus()
         self.__o = self.__system.get_object(
-                    'com.ubuntu.Upstart', 
+                    'com.ubuntu.Upstart',
                     '/com/ubuntu/Upstart')
 
         self.__upstart_i = dbus.Interface(
-                                self.__o, 
+                                self.__o,
                                 'com.ubuntu.Upstart0_6')
 
         self.__property_i = dbus.Interface(
-                                self.__o, 
+                                self.__o,
                                 'org.freedesktop.DBus.Properties')
 
     def get_version(self):
@@ -24,8 +42,8 @@ class UpstartSystem(object):
 
     def set_log_priority(self, priority_string):
         self.__property_i.Set(
-            'com.ubuntu.Upstart0_6', 
-            'log_priority', 
+            'com.ubuntu.Upstart0_6',
+            'log_priority',
             priority_string)
 
     def get_all_jobs(self):
