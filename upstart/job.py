@@ -2,36 +2,39 @@ import dbus
 
 
 class UpstartJob(object):
-    def __init__(self, job_name):
+    def __init__(self, job_name, bus=None):
         if job_name[0] == '/':
-            raise ValueError("Expected simple, short job name: %s" % 
+            raise ValueError("Expected simple, short job name: %s" %
                              (job_name))
 
-        self.__system = dbus.SystemBus()
+        if bus:
+            self.__system = bus
+        else:
+            self.__system = dbus.SystemBus()
         self.__job_name = job_name
 
         self.__o = self.__system.get_object(
-                'com.ubuntu.Upstart', 
+                'com.ubuntu.Upstart',
                 '/com/ubuntu/Upstart/jobs/%s' % (self.__job_name))
 
         self.__job_i = dbus.Interface(
-                        self.__o, 
+                        self.__o,
                         'com.ubuntu.Upstart0_6.Job')
 
     def get_status(self):
         o = self.__system.get_object(
-                'com.ubuntu.Upstart', 
+                'com.ubuntu.Upstart',
                 '/com/ubuntu/Upstart/jobs/%s/_' % (self.__job_name))
 
         properties_i = dbus.Interface(
-                        o, 
+                        o,
                         'org.freedesktop.DBus.Properties')
 
         return properties_i.GetAll('')
 
     def __get_conditions(self, type_):
         properties_i = dbus.Interface(
-                        self.__o, 
+                        self.__o,
                         'org.freedesktop.DBus.Properties')
 
         return properties_i.Get('com.ubuntu.Upstart0_6.Job', type_)

@@ -4,24 +4,25 @@ import dbus.connection
 import weakref
 
 
-class DirectBusConnection(dbus.bus.BusConnection):
+class DirectUpstartBus(dbus.bus.BusConnection):
     '''
     dbus_bus_register() fails for direct address connections,
     so we avoid that by creating a connection directly
     '''
-    def __new__(self, address):
-        bus = dbus.connection.Connection(address)
+    def __new__(self):
+        bus = dbus.connection.Connection('unix:abstract=/com/ubuntu/upstart')
         bus._bus_names = weakref.WeakValueDictionary()
         bus._signal_sender_matches = {}
         return bus
 
 
 class UpstartSystem(object):
-    def __init__(self, direct=False):
-        if direct:
-            self.__system = DirectBusConnection('unix:abstract=/com/ubuntu/upstart')
+    def __init__(self, bus=None):
+        if bus:
+            self.__system = bus
         else:
             self.__system = dbus.SystemBus()
+
         self.__o = self.__system.get_object(
                     'com.ubuntu.Upstart',
                     '/com/ubuntu/Upstart')
